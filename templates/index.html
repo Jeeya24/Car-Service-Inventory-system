@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Car Inventory{% endblock %}
+
+{% block extra_css %}
+<style>
+    .welcome-section {
+        padding: 5rem 1rem;
+        max-width: 800px;
+        margin: 0 auto;
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .welcome-section h1 {
+        color: var(--bs-primary);
+        font-weight: 600;
+    }
+
+    .welcome-section p {
+        color: var(--bs-secondary);
+        margin-bottom: 2rem;
+    }
+
+    .btn-primary {
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(var(--bs-primary-rgb), 0.2);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(var(--bs-primary-rgb), 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-section">
+    <h1>Welcome to Car Inventory</h1>
+    <p>Manage your car inventory with ease</p>
+    <a href="{{ url_for('cars') }}" class="btn">View Cars</a>
+</div>
+{% endblock %}
+
+{% block unauthenticated_content %}
+<div class="welcome-section text-center">
+    <h1 class="display-4 mb-4">Welcome to Car Inventory</h1>
+    <p class="lead mb-5">Manage your car inventory with ease</p>
+    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg px-5 py-3">Login to Get Started</a>
+</div>
+{% endblock %}

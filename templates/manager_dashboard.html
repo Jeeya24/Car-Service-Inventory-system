@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Manager Dashboard - Car Inventory{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-5 fw-bold">Manager Dashboard</h1>
+            <p class="lead">Welcome, {{ current_user.first_name }} {{ current_user.last_name }}</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Quick Stats -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Your Role</h5>
+                    <p class="card-text fs-4 text-primary">Manager</p>
+                    <p class="card-text">Employee ID: {{ current_user.employee_id }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Contact Information</h5>
+                    <p class="card-text"><i class="fas fa-envelope me-2"></i>{{ current_user.email }}</p>
+                    <p class="card-text"><i class="fas fa-phone me-2"></i>{{ current_user.phone }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Account Details</h5>
+                    <p class="card-text"><i class="fas fa-user me-2"></i>{{ current_user.username }}</p>
+                    <p class="card-text"><i class="fas fa-calendar me-2"></i>Joined: {{ current_user.created_at.strftime('%B %d, %Y') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col">
+            <h2 class="mb-4">Management Tools</h2>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- First Row -->
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Customer Management</h5>
+                    <p class="card-text">Manage customer information and records.</p>
+                    <a href="{{ url_for('customers') }}" class="btn btn-primary">Manage Customers</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-car fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Vehicle Management</h5>
+                    <p class="card-text">View and manage all vehicles in the inventory.</p>
+                    <a href="{{ url_for('vehicles') }}" class="btn btn-primary">Manage Vehicles</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-tools fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Service Management</h5>
+                    <p class="card-text">Manage service records and appointments.</p>
+                    <a href="{{ url_for('services') }}" class="btn btn-primary">Manage Services</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-cogs fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Parts Inventory</h5>
+                    <p class="card-text">Manage spare parts inventory and stock levels.</p>
+                    <a href="{{ url_for('parts') }}" class="btn btn-primary">Manage Parts</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-cog fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Service Parts</h5>
+                    <p class="card-text">Track parts used in service records.</p>
+                    <a href="{{ url_for('service_parts') }}" class="btn btn-primary">View Service Parts</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Second Row -->
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-file-invoice-dollar fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Billing Management</h5>
+                    <p class="card-text">Manage invoices and payment records.</p>
+                    <a href="{{ url_for('bills') }}" class="btn btn-primary">Manage Bills</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Business Analytics</h5>
+                    <p class="card-text">View revenue charts, service statistics, and business performance metrics.</p>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">View Analytics</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-tie fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Employee Management</h5>
+                    <p class="card-text">Manage staff information and access.</p>
+                    <a href="{{ url_for('employees') }}" class="btn btn-primary">Manage Employees</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-cog fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">System Settings</h5>
+                    <p class="card-text">Configure system settings and preferences.</p>
+                    <a href="{{ url_for('settings') }}" class="btn btn-primary">Access Settings</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

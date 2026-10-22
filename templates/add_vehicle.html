@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+
+{% block title %}Add Vehicle - Car Inventory{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-5 fw-bold">Add New Vehicle</h1>
+            <p class="lead">Register a vehicle in the system</p>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Vehicle Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('add_vehicle') }}" id="vehicleForm">
+                        {% if request.args.get('customer_id') %}
+                        <input type="hidden" name="from_customer" value="1">
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label for="customer_id" class="form-label">Customer <span class="text-danger">*</span></label>
+                                <select class="form-select" id="customer_id" name="customer_id" required>
+                                    <option value="">Select Customer</option>
+                                    {% for customer in customers %}
+                                    <option value="{{ customer.customer_id }}" {% if customer.customer_id == selected_customer_id %}selected{% endif %}>
+                                        {{ customer.customer_id }} - {{ customer.first_name }} {{ customer.last_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">
+                                    Please select a customer.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="brand" class="form-label">Brand <span class="text-danger">*</span></label>
+                                <select class="form-select" id="brand" name="brand" required>
+                                    <option value="">Select Brand</option>
+                                    <!-- Brands will be populated via JavaScript -->
+                                </select>
+                                <div class="invalid-feedback">
+                                    Brand is required.
+                                </div>
+                                <div id="custom_brand_group" class="mt-2">
+                                    <input type="text" class="form-control" id="custom_brand" name="custom_brand" placeholder="Enter brand name">
+                                    <div class="form-text">Please specify the car brand</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="model" class="form-label">Model <span class="text-danger">*</span></label>
+                                <select class="form-select" id="model" name="model" required>
+                                    <option value="">Select Brand First</option>
+                                    <!-- Models will be populated via JavaScript based on selected brand -->
+                                </select>
+                                <div class="invalid-feedback">
+                                    Model is required.
+                                </div>
+                                <div id="custom_model_group" class="mt-2">
+                                    <input type="text" class="form-control" id="custom_model" name="custom_model" placeholder="Enter model name">
+                                    <div class="form-text">Please specify the car model</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="year" class="form-label">Year <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="year" name="year" required
+                                       min="1900" max="{{ current_year }}" value="{{ current_year }}">
+                                <div class="invalid-feedback">
+                                    Valid year is required.
+                                </div>
+                            </div>
+
+                            <div class="col-md-8">
+                                <label for="registration_number" class="form-label">Registration Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="registration_number" name="registration_number" required
+                                       pattern="[A-Z0-9]{5,10}" title="5-10 alphanumeric characters"
+                                       oninput="this.value = this.value.toUpperCase()">
+                                <div class="invalid-feedback">
+                                    Valid registration number is required (5-10 alphanumeric characters).
+                                </div>
+                                <div class="form-text">Format: 5-10 alphanumeric characters (e.g., ABC123)</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="vin" class="form-label">VIN <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="vin" name="vin" required
+                                       pattern="[A-HJ-NPR-Z0-9]{17}" title="17 alphanumeric characters (excluding I, O, Q)"
+                                       oninput="this.value = this.value.toUpperCase()">
+                                <div class="invalid-feedback">
+                                    Valid VIN is required (17 alphanumeric characters).
+                                </div>
+                                <div class="form-text">Format: 17 alphanumeric characters (excluding I, O, Q)</div>
+                            </div>
+
+                            {% if current_user.role == 'manager' or current_user.is_admin %}
+                            <div class="col-12">
+                                <label for="assigned_employee_id" class="form-label">Assign to Staff</label>
+                                <select class="form-select" id="assigned_employee_id" name="assigned_employee_id">
+                                    <option value="">Unassigned</option>
+                                    {% for staff in staff_employees %}
+                                    <option value="{{ staff.id }}">
+                                        {{ staff.first_name }} {{ staff.last_name }} ({{ staff.employee_id }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Optional: Assign this vehicle to a staff member</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="planned_start_time" class="form-label">Planned Start Time</label>
+                                <input type="datetime-local" class="form-control" id="planned_start_time" name="planned_start_time">
+                                <div class="form-text">When service is planned to start</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="planned_end_time" class="form-label">Planned End Time</label>
+                                <input type="datetime-local" class="form-control" id="planned_end_time" name="planned_end_time">
+                                <div class="form-text">When service is planned to end</div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            {% if request.args.get('customer_id') %}
+                            <a href="{{ url_for('customers') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Customers
+                            </a>
+                            {% else %}
+                            <a href="{{ url_for('vehicles') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Vehicles
+                            </a>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Add Vehicle
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Information</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <i class="fas fa-info-circle text-primary me-2"></i>
+                        All fields marked with <span class="text-danger">*</span> are required.
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-car text-primary me-2"></i>
+                        Vehicle ID will be automatically generated.
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-id-card text-primary me-2"></i>
+                        Registration number must be 5-10 alphanumeric characters.
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-fingerprint text-primary me-2"></i>
+                        VIN must be 17 alphanumeric characters (excluding I, O, Q).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form validation
+        const form = document.getElementById('vehicleForm');
+        const brandSelect = document.getElementById('brand');
+        const modelSelect = document.getElementById('model');
+        const customBrandInput = document.getElementById('custom_brand');
+        const customModelInput = document.getElementById('custom_model');
+        const customBrandGroup = document.getElementById('custom_brand_group');
+        const customModelGroup = document.getElementById('custom_model_group');
+
+        // Initially disable the model dropdown
+        modelSelect.disabled = true;
+
+        // Hide custom input fields initially
+        if (customBrandGroup) customBrandGroup.style.display = 'none';
+        if (customModelGroup) customModelGroup.style.display = 'none';
+
+        // Load car brands
+        fetch('/api/car-brands')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Clear existing options
+                    brandSelect.innerHTML = '<option value="">Select Brand</option>';
+
+                    // Populate brand dropdown
+                    const brands = data.brands;
+                    brands.forEach(brand => {
+                        const option = document.createElement('option');
+                        option.value = brand;
+                        option.textContent = brand;
+                        brandSelect.appendChild(option);
+                    });
+
+                    // Add "Other" option
+                    const otherOption = document.createElement('option');
+                    otherOption.value = "other";
+                    otherOption.textContent = "Other (specify)";
+                    brandSelect.appendChild(otherOption);
+                } else {
+                    console.error('Error loading car brands:', data.message);
+                    brandSelect.innerHTML = '<option value="">Error loading brands</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading car brands:', error);
+                brandSelect.innerHTML = '<option value="">Error loading brands</option>';
+            });
+
+        // Handle brand change to update models
+        brandSelect.addEventListener('change', function() {
+            const selectedBrand = this.value;
+
+            // Handle custom brand input
+            if (customBrandGroup) {
+                if (selectedBrand === 'other') {
+                    customBrandGroup.style.display = 'block';
+                    if (customBrandInput) customBrandInput.required = true;
+                } else {
+                    customBrandGroup.style.display = 'none';
+                    if (customBrandInput) customBrandInput.required = false;
+                }
+            }
+
+            // Clear and reset model dropdown
+            modelSelect.innerHTML = '<option value="">Select Model</option>';
+
+            // Handle "Other" selection or empty selection
+            if (!selectedBrand || selectedBrand === 'other') {
+                modelSelect.disabled = true;
+
+                // If "Other" is selected for brand, show custom model input
+                if (selectedBrand === 'other' && customModelGroup) {
+                    customModelGroup.style.display = 'block';
+                    if (customModelInput) customModelInput.required = true;
+                } else if (customModelGroup) {
+                    customModelGroup.style.display = 'none';
+                    if (customModelInput) customModelInput.required = false;
+                }
+                return;
+            }
+
+            // Show loading state
+            modelSelect.disabled = true;
+            const loadingOption = document.createElement('option');
+            loadingOption.textContent = "Loading models...";
+            loadingOption.disabled = true;
+            modelSelect.appendChild(loadingOption);
+
+            // Fetch models for selected brand
+            fetch(`/api/car-models/${encodeURIComponent(selectedBrand)}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Clear loading state
+                    modelSelect.innerHTML = '<option value="">Select Model</option>';
+
+                    if (data.success) {
+                        // Populate model dropdown
+                        const models = data.models;
+                        if (models.length === 0) {
+                            const noModelsOption = document.createElement('option');
+                            noModelsOption.disabled = true;
+                            noModelsOption.textContent = "No models found";
+                            modelSelect.appendChild(noModelsOption);
+
+                            // Show custom model input if no models available
+                            if (customModelGroup) {
+                                customModelGroup.style.display = 'block';
+                                if (customModelInput) customModelInput.required = true;
+                            }
+                        } else {
+                            models.forEach(model => {
+                                const option = document.createElement('option');
+                                option.value = model;
+                                option.textContent = model;
+                                modelSelect.appendChild(option);
+                            });
+
+                            // Add "Other" option to models
+                            const otherOption = document.createElement('option');
+                            otherOption.value = "other";
+                            otherOption.textContent = "Other (specify)";
+                            modelSelect.appendChild(otherOption);
+
+                            // Enable the model dropdown
+                            modelSelect.disabled = false;
+
+                            // Hide custom model input initially
+                            if (customModelGroup) {
+                                customModelGroup.style.display = 'none';
+                                if (customModelInput) customModelInput.required = false;
+                            }
+                        }
+                    } else {
+                        console.error('Error loading car models:', data.message);
+                        const errorOption = document.createElement('option');
+                        errorOption.disabled = true;
+                        errorOption.textContent = "Error loading models";
+                        modelSelect.appendChild(errorOption);
+
+                        // Show custom model input on error
+                        if (customModelGroup) {
+                            customModelGroup.style.display = 'block';
+                            if (customModelInput) customModelInput.required = true;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading car models:', error);
+                    modelSelect.innerHTML = '<option value="">Error loading models</option>';
+
+                    // Show custom model input on error
+                    if (customModelGroup) {
+                        customModelGroup.style.display = 'block';
+                        if (customModelInput) customModelInput.required = true;
+                    }
+                });
+        });
+
+        // Handle model change for custom input
+        modelSelect.addEventListener('change', function() {
+            if (customModelGroup) {
+                if (this.value === 'other') {
+                    customModelGroup.style.display = 'block';
+                    if (customModelInput) customModelInput.required = true;
+                } else {
+                    customModelGroup.style.display = 'none';
+                    if (customModelInput) customModelInput.required = false;
+                }
+            }
+        });
+
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            form.classList.add('was-validated');
+
+            // Additional validation
+            const vin = document.getElementById('vin').value;
+            const registration = document.getElementById('registration_number').value;
+            let brand = brandSelect.value;
+            let model = modelSelect.value;
+
+            // Use custom inputs if "Other" is selected
+            if (brand === 'other' && customBrandInput) {
+                brand = customBrandInput.value.trim();
+                if (!brand) {
+                    event.preventDefault();
+                    alert('Please enter a car brand');
+                    customBrandInput.focus();
+                    return;
+                }
+            }
+
+            if ((model === 'other' || brandSelect.value === 'other') && customModelInput) {
+                model = customModelInput.value.trim();
+                if (!model) {
+                    event.preventDefault();
+                    alert('Please enter a car model');
+                    customModelInput.focus();
+                    return;
+                }
+            }
+
+            // Validate brand and model
+            if (!brand) {
+                event.preventDefault();
+                alert('Please select a car brand');
+                brandSelect.focus();
+                return;
+            }
+
+            if (!model && brandSelect.value !== 'other') {
+                event.preventDefault();
+                alert('Please select a car model');
+                modelSelect.focus();
+                return;
+            }
+
+            // Validate VIN format
+            if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) {
+                event.preventDefault();
+                alert('Invalid VIN format. Must be 17 alphanumeric characters (excluding I, O, Q)');
+                document.getElementById('vin').focus();
+                return;
+            }
+
+            // Validate registration number format
+            if (!/^[A-Z0-9]{5,10}$/.test(registration)) {
+                event.preventDefault();
+                alert('Invalid registration number format. Must be 5-10 alphanumeric characters');
+                document.getElementById('registration_number').focus();
+                return;
+            }
+        });
+    });
+</script>
+{% endblock %}

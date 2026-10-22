@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+
+{% block title %}Add Service - Car Inventory{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="header-actions">
+        <h1>Add New Service</h1>
+        <a href="{{ url_for('services') }}" class="btn btn-outline">Back to Services</a>
+    </div>
+
+    <form method="POST" action="{{ url_for('add_service') }}" class="service-form">
+        <div class="form-group">
+            <label for="vehicle_id">Vehicle</label>
+            <select name="vehicle_id" id="vehicle_id" required>
+                <option value="">Select a vehicle</option>
+                {% for vehicle in vehicles %}
+                    <option value="{{ vehicle.id }}">{{ vehicle.brand }} {{ vehicle.model }} ({{ vehicle.vehicle_id }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="service_date">Service Date</label>
+            <input type="date" name="service_date" id="service_date" required value="{{ today }}">
+        </div>
+
+        <div class="form-group">
+            <label for="service_status">Status</label>
+            <select name="service_status" id="service_status" required>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+            </select>
+        </div>
+
+        <div class="services-section">
+            <h3>Services</h3>
+            <div id="services-container">
+                <div class="service-entry">
+                    <div class="form-group">
+                        <label>Service Type</label>
+                        <select name="service_types[]" required>
+                            <option value="">Select service type</option>
+                            <option value="Oil Change">Oil Change</option>
+                            <option value="Brake Service">Brake Service</option>
+                            <option value="Tire Rotation">Tire Rotation</option>
+                            <option value="Engine Repair">Engine Repair</option>
+                            <option value="Transmission Service">Transmission Service</option>
+                            <option value="Electrical System">Electrical System</option>
+                            <option value="AC Service">AC Service</option>
+                            <option value="General Inspection">General Inspection</option>
+                            <option value="Brake Pad Replacement">Brake Pad Replacement</option>
+                            <option value="Air Filter Replacement">Air Filter Replacement</option>
+                            <option value="Spark Plug Replacement">Spark Plug Replacement</option>
+                            <option value="Battery Replacement">Battery Replacement</option>
+                            <option value="Timing Belt Replacement">Timing Belt Replacement</option>
+                            <option value="Car Door Replacement">Car Door Replacement</option>
+                            <option value="Glass Replacement">Glass Replacement</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea name="descriptions[]" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Cost</label>
+                        <input type="number" name="service_costs[]" step="0.01" min="0" required>
+                    </div>
+                    <button type="button" class="btn btn-danger remove-service" style="display: none;">Remove</button>
+                </div>
+            </div>
+            <button type="button" class="btn btn-secondary" id="add-service">Add Another Service</button>
+        </div>
+
+        <div class="parts-section">
+            <h3>Parts Used</h3>
+            <!-- Flash message container for part selection warnings -->
+            <div id="part-selection-warning" class="alert alert-warning" style="display: none;">
+                <span id="part-warning-message"></span>
+                <button type="button" class="btn-close" onclick="document.getElementById('part-selection-warning').style.display = 'none';"></button>
+            </div>
+            <div id="parts-container">
+                <div class="part-entry">
+                    <div class="form-group">
+                        <label>Part</label>
+                        <select name="part_ids[]" class="part-select">
+                            <option value="">Select a part</option>
+                            {% for part in parts %}
+                                <option value="{{ part.id }}" data-price="{{ part.price }}" data-stock="{{ part.stock_quantity }}">
+                                    {{ part.part_name }} ({{ part.part_id }}) - Stock: {{ part.stock_quantity }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Unit Price ($)</label>
+                        <input type="number" step="0.01" readonly class="unit-price" value="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" name="quantities[]" min="1" value="1" class="quantity-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Cost ($)</label>
+                        <input type="number" name="part_costs[]" step="0.01" readonly class="part-cost">
+                    </div>
+                    <button type="button" class="btn btn-danger remove-part" style="display: none;">Remove</button>
+                </div>
+            </div>
+            <button type="button" class="btn btn-secondary" id="add-part">Add Another Part</button>
+            <div class="total-parts-cost-container">
+                <h4>Total Parts Cost: $<span id="total-parts-cost">0.00</span></h4>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add Service</button>
+            <a href="{{ url_for('services') }}" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Service entry handling
+    const servicesContainer = document.getElementById('services-container');
+    const addServiceBtn = document.getElementById('add-service');
+    const serviceTemplate = servicesContainer.querySelector('.service-entry').cloneNode(true);
+
+    addServiceBtn.addEventListener('click', function() {
+        const newService = serviceTemplate.cloneNode(true);
+        newService.querySelector('.remove-service').style.display = 'block';
+        servicesContainer.appendChild(newService);
+    });
+
+    servicesContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-service')) {
+            e.target.closest('.service-entry').remove();
+        }
+    });
+
+    // Part entry handling
+    const partsContainer = document.getElementById('parts-container');
+    const addPartBtn = document.getElementById('add-part');
+    const partTemplate = partsContainer.querySelector('.part-entry').cloneNode(true);
+
+    // Function to show warning message
+    function showPartWarning(message) {
+        const warningElement = document.getElementById('part-selection-warning');
+        const messageElement = document.getElementById('part-warning-message');
+        messageElement.textContent = message;
+        warningElement.style.display = 'block';
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            warningElement.style.display = 'none';
+        }, 5000);
+    }
+
+    // Function to get all currently selected part IDs
+    function getSelectedPartIds() {
+        const partSelects = document.querySelectorAll('.part-select');
+        const selectedIds = [];
+
+        partSelects.forEach(select => {
+            if (select.value) {
+                selectedIds.push(select.value);
+            }
+        });
+
+        return selectedIds;
+    }
+
+    // Function to check if a part ID is already selected
+    function isPartAlreadySelected(partId, currentSelect) {
+        if (!partId) return false;
+
+        const partSelects = document.querySelectorAll('.part-select');
+        let count = 0;
+
+        partSelects.forEach(select => {
+            if (select !== currentSelect && select.value === partId) {
+                count++;
+            }
+        });
+
+        return count > 0;
+    }
+
+    addPartBtn.addEventListener('click', function() {
+        const newPart = partTemplate.cloneNode(true);
+        newPart.querySelector('.remove-part').style.display = 'block';
+        partsContainer.appendChild(newPart);
+        initializePartHandlers(newPart);
+    });
+
+    partsContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-part')) {
+            e.target.closest('.part-entry').remove();
+            // Update total parts cost after removing a part
+            updateTotalPartsCost();
+        }
+    });
+
+    function initializePartHandlers(partEntry) {
+        const partSelect = partEntry.querySelector('.part-select');
+        const unitPriceInput = partEntry.querySelector('.unit-price');
+        const quantityInput = partEntry.querySelector('.quantity-input');
+        const partCost = partEntry.querySelector('.part-cost');
+
+        function updatePartCost() {
+            const selectedOption = partSelect.selectedOptions[0];
+            if (selectedOption && selectedOption.dataset.price) {
+                const price = parseFloat(selectedOption.dataset.price);
+                const quantity = parseInt(quantityInput.value) || 0;
+                const stock = parseInt(selectedOption.dataset.stock) || 0;
+
+                // Update unit price display
+                unitPriceInput.value = price.toFixed(2);
+
+                // Check if quantity exceeds stock
+                if (quantity > stock) {
+                    alert('Quantity exceeds available stock!');
+                    quantityInput.value = stock;
+                }
+
+                // Calculate and update total cost for this part
+                partCost.value = (price * quantity).toFixed(2);
+
+                // Update total parts cost
+                updateTotalPartsCost();
+            } else {
+                unitPriceInput.value = '0.00';
+                partCost.value = '0.00';
+                updateTotalPartsCost();
+            }
+        }
+
+        // Add event listener for part selection to check for duplicates
+        partSelect.addEventListener('change', function(e) {
+            const selectedPartId = this.value;
+
+            // If a part is selected, check if it's already used in another row
+            if (selectedPartId && isPartAlreadySelected(selectedPartId, this)) {
+                // Get the part name from the selected option
+                const partName = this.selectedOptions[0].textContent.trim().split(' - ')[0];
+
+                // Show warning message
+                showPartWarning(`This part "${partName}" has already been selected above. Please select a different part or adjust the quantity in the existing row.`);
+
+                // Reset the selection
+                this.value = '';
+
+                // Reset the price and cost fields
+                unitPriceInput.value = '0.00';
+                partCost.value = '0.00';
+                updateTotalPartsCost();
+
+                // Highlight the row with the duplicate part
+                highlightDuplicatePart(selectedPartId);
+
+                return;
+            }
+
+            // If no duplicate, proceed with normal cost update
+            updatePartCost();
+        });
+
+        quantityInput.addEventListener('input', updatePartCost);
+    }
+
+    // Function to highlight the row with the duplicate part
+    function highlightDuplicatePart(partId) {
+        const partSelects = document.querySelectorAll('.part-select');
+
+        partSelects.forEach(select => {
+            if (select.value === partId) {
+                const row = select.closest('.part-entry');
+
+                // Add highlight class
+                row.classList.add('duplicate-highlight');
+
+                // Remove highlight after 2 seconds
+                setTimeout(() => {
+                    row.classList.remove('duplicate-highlight');
+                }, 2000);
+            }
+        });
+    }
+
+    // Function to calculate and update the total cost of all parts
+    function updateTotalPartsCost() {
+        const partCosts = document.querySelectorAll('.part-cost');
+        let totalCost = 0;
+
+        partCosts.forEach(costInput => {
+            totalCost += parseFloat(costInput.value) || 0;
+        });
+
+        document.getElementById('total-parts-cost').textContent = totalCost.toFixed(2);
+    }
+
+    // Initialize handlers for the first part entry
+    const firstPartEntry = partsContainer.querySelector('.part-entry');
+    initializePartHandlers(firstPartEntry);
+
+    // Trigger the updatePartCost function for the first part entry
+    const firstPartSelect = firstPartEntry.querySelector('.part-select');
+    if (firstPartSelect) {
+        const event = new Event('change');
+        firstPartSelect.dispatchEvent(event);
+    }
+
+    // Form submission handling
+    const serviceForm = document.querySelector('.service-form');
+    serviceForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Collect services data
+        const services = [];
+        const serviceEntries = document.querySelectorAll('.service-entry');
+        serviceEntries.forEach(entry => {
+            const type = entry.querySelector('select[name="service_types[]"]').value;
+            const description = entry.querySelector('textarea[name="descriptions[]"]').value;
+            const cost = entry.querySelector('input[name="service_costs[]"]').value;
+
+            if (type && description && cost) {
+                services.push({
+                    type: type,
+                    description: description,
+                    cost: cost
+                });
+            }
+        });
+
+        // Collect parts data
+        const parts = [];
+        const partEntries = document.querySelectorAll('.part-entry');
+        partEntries.forEach(entry => {
+            const partSelect = entry.querySelector('select[name="part_ids[]"]');
+            const quantity = entry.querySelector('input[name="quantities[]"]').value;
+            const unitPrice = entry.querySelector('.unit-price').value;
+            const totalCost = entry.querySelector('.part-cost').value;
+
+            if (partSelect.value && quantity) {
+                parts.push({
+                    id: partSelect.value,
+                    quantity: quantity,
+                    unit_price: unitPrice,
+                    total_cost: totalCost
+                });
+            }
+        });
+
+        // Create hidden inputs for JSON data
+        const servicesInput = document.createElement('input');
+        servicesInput.type = 'hidden';
+        servicesInput.name = 'services';
+        servicesInput.value = JSON.stringify(services);
+
+        const partsInput = document.createElement('input');
+        partsInput.type = 'hidden';
+        partsInput.name = 'parts';
+        partsInput.value = JSON.stringify(parts);
+
+        // Add hidden inputs to form
+        serviceForm.appendChild(servicesInput);
+        serviceForm.appendChild(partsInput);
+
+        // Submit the form
+        serviceForm.submit();
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.service-form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.form-group textarea {
+    height: 100px;
+    resize: vertical;
+}
+
+.services-section,
+.parts-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.service-entry {
+    display: grid;
+    grid-template-columns: 2fr 2fr 1fr auto;
+    gap: 15px;
+    align-items: start;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.part-entry {
+    display: grid;
+    grid-template-columns: 3fr 1fr 1fr 1fr auto;
+    gap: 15px;
+    align-items: start;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 15px;
+}
+
+.total-parts-cost-container {
+    margin-top: 20px;
+    text-align: right;
+    padding: 10px;
+    background: #e9ecef;
+    border-radius: 4px;
+}
+
+.unit-price {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-weight: 500;
+}
+
+.form-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.duplicate-highlight {
+    animation: highlight-pulse 2s 1;
+}
+
+@keyframes highlight-pulse {
+    0% { background-color: #f8f9fa; }
+    25% { background-color: #ffcccc; }
+    50% { background-color: #ffcccc; }
+    100% { background-color: #f8f9fa; }
+}
+
+.alert {
+    padding: 12px 20px;
+    margin-bottom: 15px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+}
+
+.btn-close {
+    float: right;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+    opacity: .5;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+</style>
+{% endblock %}

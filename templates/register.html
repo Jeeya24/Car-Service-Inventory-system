@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Car Inventory{% endblock %}
+
+{% block unauthenticated_content %}
+<div class="container">
+    <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                        <h2>Create an Account</h2>
+                        <p class="text-muted">Join our car inventory management system</p>
+                    </div>
+
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form id="registrationForm" method="POST" action="{{ url_for('register') }}" class="needs-validation" novalidate>
+                        <div class="row g-3">
+                            <!-- First Name -->
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control {% if errors and 'first_name' in errors %}is-invalid{% endif %}"
+                                           id="first_name" name="first_name" required
+                                           value="{{ form_data.get('first_name', '') }}">
+                                    <label for="first_name">First Name</label>
+                                    <div class="invalid-feedback">
+                                        {% if errors and 'first_name' in errors %}{{ errors['first_name'] }}{% else %}Please enter your first name.{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control {% if errors and 'last_name' in errors %}is-invalid{% endif %}"
+                                           id="last_name" name="last_name" required
+                                           value="{{ form_data.get('last_name', '') }}">
+                                    <label for="last_name">Last Name</label>
+                                    <div class="invalid-feedback">
+                                        {% if errors and 'last_name' in errors %}{{ errors['last_name'] }}{% else %}Please enter your last name.{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <input type="email" class="form-control {% if errors and 'email' in errors %}is-invalid{% endif %}"
+                                           id="email" name="email" required
+                                           value="{{ form_data.get('email', '') }}">
+                                    <label for="email">Email Address</label>
+                                    <div class="invalid-feedback">
+                                        {% if errors and 'email' in errors %}{{ errors['email'] }}{% else %}Please enter a valid email address.{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Phone -->
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <input type="tel" class="form-control {% if errors and 'phone' in errors %}is-invalid{% endif %}"
+                                           id="phone" name="phone" required
+                                           value="{{ form_data.get('phone', '') }}">
+                                    <label for="phone">Phone Number</label>
+                                    <div class="invalid-feedback">
+                                        {% if errors and 'phone' in errors %}{{ errors['phone'] }}{% else %}Please enter a valid phone number (10-15 digits).{% endif %}
+                                    </div>
+                                </div>
+                                <small class="text-muted">Format: 10-15 digits</small>
+                            </div>
+
+                            <!-- Username -->
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control {% if errors and 'username' in errors %}is-invalid{% endif %}"
+                                           id="username" name="username" required
+                                           value="{{ form_data.get('username', '') }}">
+                                    <label for="username">Username</label>
+                                    <div id="usernameFeedback" class="invalid-feedback">
+                                        {% if errors and 'username' in errors %}{{ errors['username'] }}{% else %}Username must be at least 3 characters.{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Role -->
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <select class="form-select {% if errors and 'role' in errors %}is-invalid{% endif %}"
+                                            id="role" name="role" required>
+                                        <option value="">Select Role</option>
+                                        <option value="staff" {% if form_data.get('role') == 'staff' %}selected{% endif %}>Staff</option>
+                                        <option value="manager" {% if form_data.get('role') == 'manager' %}selected{% endif %}>Manager</option>
+                                    </select>
+                                    <label for="role">Role</label>
+                                    <div class="invalid-feedback">
+                                        {% if errors and 'role' in errors %}{{ errors['role'] }}{% else %}Please select a role.{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="col-12">
+                                <div class="form-floating position-relative">
+                                    <input type="password" class="form-control {% if errors and 'password' in errors %}is-invalid{% endif %}"
+                                           id="password" name="password" required>
+                                    <label for="password">Password</label>
+                                    <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y" id="togglePassword">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <div class="invalid-feedback">
+                                        {% if errors and 'password' in errors %}{{ errors['password'] }}{% else %}Please enter a password.{% endif %}
+                                    </div>
+                                </div>
+                                <div class="password-strength mt-2">
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <small class="text-muted mt-1 d-block">Password must contain at least 8 characters, including uppercase, lowercase, number, and special character.</small>
+                                </div>
+                            </div>
+
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-primary w-100 py-2">
+                                    <i class="fas fa-user-plus me-2"></i>Register
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-4">
+                        <p class="mb-0">Already have an account? <a href="{{ url_for('login') }}" class="text-primary fw-bold">Sign in here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('registrationForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const togglePassword = document.getElementById('togglePassword');
+    const progressBar = document.querySelector('.progress-bar');
+    const usernameFeedback = document.getElementById('usernameFeedback');
+
+    // Password strength validation
+    const passwordRequirements = {
+        length: /.{8,}/,
+        uppercase: /[A-Z]/,
+        lowercase: /[a-z]/,
+        number: /[0-9]/,
+        special: /[!@#$%^&*(),.?":{}|<>]/
+    };
+
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        for (let requirement in passwordRequirements) {
+            if (passwordRequirements[requirement].test(password)) {
+                strength += 20;
+            }
+        }
+        return strength;
+    }
+
+    passwordInput.addEventListener('input', function() {
+        const strength = checkPasswordStrength(this.value);
+        progressBar.style.width = strength + '%';
+
+        if (strength <= 20) {
+            progressBar.className = 'progress-bar bg-danger';
+        } else if (strength <= 60) {
+            progressBar.className = 'progress-bar bg-warning';
+        } else {
+            progressBar.className = 'progress-bar bg-success';
+        }
+    });
+
+    // Toggle password visibility
+    togglePassword.addEventListener('click', function() {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.querySelector('i').className = type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+    });
+
+    // Username availability check
+    let usernameTimeout;
+    usernameInput.addEventListener('input', function() {
+        clearTimeout(usernameTimeout);
+        const username = this.value.trim();
+
+        if (username.length < 3) {
+            usernameFeedback.textContent = 'Username must be at least 3 characters long';
+            usernameInput.classList.add('is-invalid');
+            usernameInput.classList.remove('is-valid');
+            return;
+        }
+
+        // Clear validation state while checking
+        usernameInput.classList.remove('is-invalid');
+        usernameInput.classList.remove('is-valid');
+
+        usernameTimeout = setTimeout(() => {
+            fetch(`/api/check-username?username=${encodeURIComponent(username)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.available) {
+                        usernameInput.classList.remove('is-invalid');
+                        usernameInput.classList.add('is-valid');
+                        usernameFeedback.textContent = '';
+                    } else {
+                        usernameInput.classList.remove('is-valid');
+                        usernameInput.classList.add('is-invalid');
+                        usernameFeedback.textContent = data.message;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking username:', error);
+                    // If there's an error, don't mark the field as invalid
+                    usernameInput.classList.remove('is-invalid');
+                    usernameInput.classList.remove('is-valid');
+                });
+        }, 500);
+    });
+
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        if (!form.checkValidity()) {
+            e.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+
+        // Check if username is valid
+        if (usernameInput.classList.contains('is-invalid')) {
+            e.stopPropagation();
+            alert('Please fix the username issues before submitting');
+            return;
+        }
+
+        const password = passwordInput.value;
+        const strength = checkPasswordStrength(password);
+
+        if (strength < 80) {
+            alert('Please choose a stronger password that includes uppercase, lowercase, numbers, and special characters');
+            return;
+        }
+
+        // Submit form
+        this.submit();
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label {
+    color: var(--bs-primary);
+}
+
+.form-control:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.password-strength .progress {
+    background-color: #e9ecef;
+}
+
+[data-bs-theme="dark"] .password-strength .progress {
+    background-color: #2c3034;
+}
+
+.btn-link {
+    color: var(--bs-body-color);
+    text-decoration: none;
+}
+
+.btn-link:hover {
+    color: var(--bs-primary);
+}
+
+.min-vh-100 {
+    min-height: calc(100vh - var(--navbar-height));
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: var(--bs-dark);
+    border-color: var(--bs-border-color);
+}
+
+[data-bs-theme="dark"] .text-muted {
+    color: #adb5bd !important;
+}
+</style>
+{% endblock %}

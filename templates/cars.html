@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Cars - Car Inventory{% endblock %}
+
+{% block content %}
+<div class="cars-container">
+    <h2>Car Inventory</h2>
+    <div class="cars-list">
+        {% if cars %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Make</th>
+                        <th>Model</th>
+                        <th>Year</th>
+                        <th>VIN</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for car in cars %}
+                    <tr>
+                        <td>{{ car.make }}</td>
+                        <td>{{ car.model }}</td>
+                        <td>{{ car.year }}</td>
+                        <td>{{ car.vin }}</td>
+                        <td>
+                            <a href="#" class="btn-small">Edit</a>
+                            <a href="#" class="btn-small delete">Delete</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No cars in inventory.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

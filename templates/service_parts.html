@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Service Parts - Car Inventory{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Service Parts</h1>
+            <p class="lead">View and search parts used in service records</p>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Service Parts List</h5>
+                </div>
+                <div class="col-auto">
+                    <form method="GET" action="{{ url_for('service_parts') }}" class="d-flex">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="servicePartSearch" name="q"
+                                   placeholder="Search service parts..." value="{{ search_query }}">
+                            <select class="form-select" name="service_id" style="max-width: 200px;">
+                                <option value="">All Services</option>
+                                {% for service in services %}
+                                    <option value="{{ service.service_id }}" {% if service_id == service.service_id %}selected{% endif %}>
+                                        {{ service.service_id }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <select class="form-select" name="part_id" style="max-width: 200px;">
+                                <option value="">All Parts</option>
+                                {% for part in parts %}
+                                    <option value="{{ part.part_id }}" {% if part_id == part.part_id %}selected{% endif %}>
+                                        {{ part.part_name }} ({{ part.part_id }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            {% if search_query or service_id or part_id %}
+                                <a href="{{ url_for('service_parts') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Service Part ID</th>
+                            <th>Service ID</th>
+                            <th>Part Name</th>
+                            <th>Part ID</th>
+                            <th>Quantity Used</th>
+                            <th>Price at Time</th>
+                            <th>Total Cost</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if service_parts %}
+                            {% for service_part in service_parts %}
+                                <tr>
+                                    <td>{{ service_part.service_part_id }}</td>
+                                    <td>
+                                        <a href="{{ url_for('view_service', id=service_part.service_record.id) }}">
+                                            {{ service_part.service_record.service_id }}
+                                        </a>
+                                    </td>
+                                    <td>{{ service_part.part.part_name }}</td>
+                                    <td>{{ service_part.part.part_id }}</td>
+                                    <td>{{ service_part.quantity_used }}</td>
+                                    <td>${{ "%.2f"|format(service_part.price_at_time) }}</td>
+                                    <td>${{ "%.2f"|format(service_part.total_cost) }}</td>
+                                    <td>{{ service_part.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('view_service', id=service_part.service_record.id) }}"
+                                           class="btn btn-sm btn-outline-primary"
+                                           data-bs-toggle="tooltip"
+                                           title="View Service">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center py-4">No service parts found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light">
+            <div class="row align-items-center">
+                <div class="col">
+                    <small class="text-muted">Showing {{ service_parts|length }} service parts</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // Service part search functionality
+        const searchInput = document.getElementById('servicePartSearch');
+        const serviceIdSelect = document.querySelector('select[name="service_id"]');
+        const partIdSelect = document.querySelector('select[name="part_id"]');
+        const tableRows = document.querySelectorAll('tbody tr:not([data-empty-row])');
+
+        // Function to filter table rows
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const serviceIdFilter = serviceIdSelect.value;
+            const partIdFilter = partIdSelect.value;
+            let visibleCount = 0;
+
+            tableRows.forEach(row => {
+                if (row.querySelector('td[colspan]')) return; // Skip empty state row
+
+                const servicePartId = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+                const serviceId = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const partName = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                const partId = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+
+                // Check if row matches all filters
+                const matchesSearch = searchTerm === '' ||
+                    servicePartId.includes(searchTerm) ||
+                    serviceId.includes(searchTerm) ||
+                    partName.includes(searchTerm) ||
+                    partId.includes(searchTerm);
+
+                const matchesServiceId = serviceIdFilter === '' || serviceId.includes(serviceIdFilter.toLowerCase());
+                const matchesPartId = partIdFilter === '' || partId === partIdFilter.toLowerCase();
+
+                // Show/hide row based on filters
+                if (matchesSearch && matchesServiceId && matchesPartId) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Show/hide empty state
+            const tbody = document.querySelector('tbody');
+            const emptyRow = tbody.querySelector('tr[data-empty-row]');
+
+            if (visibleCount === 0 && !emptyRow) {
+                // Create empty state row if no results
+                const newEmptyRow = document.createElement('tr');
+                newEmptyRow.setAttribute('data-empty-row', 'true');
+                newEmptyRow.innerHTML = `
+                    <td colspan="9" class="text-center py-4">
+                        <div class="text-muted">
+                            <i class="fas fa-cog fa-3x mb-3"></i>
+                            <p>No service parts found matching your filters.</p>
+                            <button class="btn btn-outline-secondary btn-sm" id="clearFilters">
+                                <i class="fas fa-times me-2"></i>Clear Filters
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(newEmptyRow);
+
+                // Add event listener to clear filters button
+                document.getElementById('clearFilters').addEventListener('click', function() {
+                    searchInput.value = '';
+                    serviceIdSelect.value = '';
+                    partIdSelect.value = '';
+                    filterTable();
+                });
+            } else if (visibleCount > 0 && emptyRow) {
+                // Remove empty state row if there are results
+                emptyRow.remove();
+            }
+        }
+
+        // Add event listeners for filtering
+        if (searchInput) {
+            searchInput.addEventListener('input', filterTable);
+            searchInput.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.form.submit();
+                }
+            });
+        }
+
+        if (serviceIdSelect) {
+            serviceIdSelect.addEventListener('change', filterTable);
+        }
+
+        if (partIdSelect) {
+            partIdSelect.addEventListener('change', filterTable);
+        }
+    });
+</script>
+{% endblock %}

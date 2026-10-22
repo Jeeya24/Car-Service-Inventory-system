@@ -1,0 +1,22 @@
+# Secrets
+.env
+
+# Virtual environments
+venv/
+.venv/
+.ven/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS / editor
+.DS_Store
+.claude/
+
+# Local databases and dumps
+instance/
+*.db
+*.sqlite3
+*.dump
+backup*.sql

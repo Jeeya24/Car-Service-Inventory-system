@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Suppliers - Car Inventory{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">Supplier Management</h1>
+            <p class="lead">Manage part suppliers and their information</p>
+        </div>
+        <div class="col-md-4 text-end align-self-center">
+            <a href="{{ url_for('add_supplier') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Add New Supplier
+            </a>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Suppliers List</h5>
+                </div>
+                <div class="col-auto">
+                    <form method="GET" action="{{ url_for('suppliers') }}" class="d-flex">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="supplierSearch" name="q"
+                                   placeholder="Search suppliers..." value="{{ search_query }}">
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            {% if search_query %}
+                                <a href="{{ url_for('suppliers') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Supplier ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Lead Time</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if suppliers %}
+                            {% for supplier in suppliers %}
+                                <tr data-supplier-id="{{ supplier.id }}">
+                                    <td>{{ supplier.supplier_id }}</td>
+                                    <td>{{ supplier.supplier_name }}</td>
+                                    <td>{{ supplier.email }}</td>
+                                    <td>{{ supplier.phone }}</td>
+                                    <td>{{ supplier.delivery_lead_time }} day(s)</td>
+                                    <td>
+                                        {% if supplier.preferred_supplier %}
+                                            <span class="badge bg-success">Preferred</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Standard</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('edit_supplier', id=supplier.id) }}" class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="Edit Supplier">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger delete-supplier" data-bs-toggle="tooltip" title="Delete Supplier" data-supplier-id="{{ supplier.id }}" data-supplier-name="{{ supplier.supplier_name }}">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="fas fa-truck fa-3x mb-3"></i>
+                                        <p>No suppliers found{% if search_query %} matching "{{ search_query }}"{% endif %}.</p>
+                                        <a href="{{ url_for('add_supplier') }}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-plus me-2"></i>Add First Supplier
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light">
+            <div class="row align-items-center">
+                <div class="col">
+                    <small class="text-muted">Showing {{ suppliers|length }} suppliers</small>
+                </div>
+                <div class="col-auto">
+                    <span class="badge bg-success me-2">Preferred</span> indicates preferred supplier
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this supplier? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // Delete supplier functionality
+        const deleteButtons = document.querySelectorAll('.delete-supplier');
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        const confirmDeleteBtn = document.getElementById('confirmDelete');
+        let supplierToDelete = null;
+
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const supplierId = this.getAttribute('data-supplier-id');
+                const supplierName = this.getAttribute('data-supplier-name');
+
+                // Update modal content
+                document.querySelector('#deleteConfirmModal .modal-body').innerHTML = `
+                    Are you sure you want to delete supplier <strong>${supplierName}</strong>? This action cannot be undone.
+                `;
+                
+                // Store supplier ID for deletion
+                supplierToDelete = supplierId;
+                
+                // Show modal
+                deleteModal.show();
+            });
+        });
+
+        // Handle delete confirmation
+        confirmDeleteBtn.addEventListener('click', function() {
+            if (supplierToDelete) {
+                // Send DELETE request
+                fetch(`/api/suppliers/${supplierToDelete}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide modal
+                    deleteModal.hide();
+                    
+                    if (data.success) {
+                        // Show success message
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                        alertDiv.role = 'alert';
+                        alertDiv.innerHTML = `
+                            ${data.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        `;
+
+                        // Insert alert at the top of the container
+                        const container = document.querySelector('.container');
+                        container.insertBefore(alertDiv, container.firstChild);
+
+                        // Remove the row from the table
+                        const row = document.querySelector(`tr[data-supplier-id="${supplierToDelete}"]`);
+                        row.remove();
+
+                        // Update the supplier count
+                        const supplierCount = document.querySelector('.text-muted');
+                        const count = document.querySelectorAll('tbody tr').length;
+                        supplierCount.textContent = `Showing ${count} suppliers`;
+
+                        // Auto-dismiss the alert after 5 seconds
+                        setTimeout(() => {
+                            alertDiv.remove();
+                        }, 5000);
+                    } else {
+                        // Show error message
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                        alertDiv.role = 'alert';
+                        alertDiv.innerHTML = `
+                            ${data.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        `;
+
+                        // Insert alert at the top of the container
+                        const container = document.querySelector('.container');
+                        container.insertBefore(alertDiv, container.firstChild);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the supplier.');
+                    deleteModal.hide();
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

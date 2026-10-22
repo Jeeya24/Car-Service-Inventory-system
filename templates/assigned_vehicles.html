@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block title %}Assigned Vehicles - Car Inventory{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="display-5 fw-bold">My Assigned Vehicles</h1>
+            <p class="lead">Vehicles assigned to you for service</p>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Assigned Vehicle List</h5>
+                </div>
+                <div class="col-auto">
+                    <form method="GET" class="d-flex">
+                        <input type="text" class="form-control me-2" name="q" value="{{ search_query }}" placeholder="Search by reg number, brand, or model...">
+                        <button class="btn btn-outline-secondary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Vehicle ID</th>
+                            <th>Brand</th>
+                            <th>Model</th>
+                            <th>Year</th>
+                            <th>Reg Number</th>
+                            <th>Customer</th>
+                            <th>Planned Start</th>
+                            <th>Planned End</th>
+                            <th>Actual Start</th>
+                            <th>Actual End</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if vehicles %}
+                            {% for vehicle in vehicles %}
+                                <tr>
+                                    <td>{{ vehicle.vehicle_id }}</td>
+                                    <td>{{ vehicle.brand }}</td>
+                                    <td>{{ vehicle.model }}</td>
+                                    <td>{{ vehicle.year }}</td>
+                                    <td>{{ vehicle.registration_number }}</td>
+                                    <td>{{ vehicle.customer.first_name }} {{ vehicle.customer.last_name }}</td>
+                                    <td>
+                                        {% if vehicle.planned_start_time %}
+                                            {{ vehicle.planned_start_time.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            <span class="text-muted">Not set</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if vehicle.planned_end_time %}
+                                            {{ vehicle.planned_end_time.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            <span class="text-muted">Not set</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="actual-start-{{ vehicle.id }}">
+                                        {% if vehicle.actual_start_time %}
+                                            <span data-bs-toggle="tooltip" title="{{ vehicle.actual_start_time.strftime('%b %d, %Y %I:%M %p') }}" data-timestamp="{{ vehicle.actual_start_time.isoformat() }}">
+                                                Started <span class="relative-time"></span>
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="actual-end-{{ vehicle.id }}">
+                                        {% if vehicle.actual_end_time %}
+                                            <span data-bs-toggle="tooltip" title="{{ vehicle.actual_end_time.strftime('%b %d, %Y %I:%M %p') }}" data-timestamp="{{ vehicle.actual_end_time.isoformat() }}">
+                                                Ended <span class="relative-time"></span>
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="status-{{ vehicle.id }}">
+                                        {% if vehicle.actual_end_time %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% elif vehicle.actual_start_time %}
+                                            <span class="badge bg-info">In Progress</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="actions-{{ vehicle.id }}">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            {% if not vehicle.actual_start_time %}
+                                                <button class="btn btn-success start-service" data-vehicle-id="{{ vehicle.id }}">
+                                                    <i class="fas fa-play"></i> Start
+                                                </button>
+                                            {% elif not vehicle.actual_end_time %}
+                                                <button class="btn btn-danger complete-service" data-vehicle-id="{{ vehicle.id }}">
+                                                    <i class="fas fa-stop"></i> Stop
+                                                </button>
+                                            {% else %}
+                                                <span class="badge bg-success">Completed</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="fas fa-car fa-3x mb-3"></i>
+                                        <p>No vehicles assigned to you yet.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light">
+            <div class="row align-items-center">
+                <div class="col">
+                    <small class="text-muted">Showing {{ vehicles|length }} assigned vehicles</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Function to update vehicle row without page reload
+    function updateVehicleRow(vehicleId) {
+        fetch(`/api/vehicles/${vehicleId}/status`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const vehicle = data.vehicle;
+                    
+                    // Update actual start time
+                    const startCell = document.querySelector(`.actual-start-${vehicleId}`);
+                    if (startCell) {
+                        if (vehicle.actual_start_time) {
+                            const startDate = new Date(vehicle.actual_start_time);
+                            const formattedDate = startDate.toLocaleDateString('en-US', {
+                                month: 'short', day: 'numeric', year: 'numeric'
+                            }) + ' ' + startDate.toLocaleTimeString('en-US', {
+                                hour: 'numeric', minute: '2-digit', hour12: true
+                            });
+                            startCell.innerHTML = `<span data-bs-toggle="tooltip" title="${formattedDate}" data-timestamp="${vehicle.actual_start_time}">Started <span class="relative-time"></span></span>`;
+                        } else {
+                            startCell.innerHTML = '<span class="text-muted">-</span>';
+                        }
+                    }
+                    
+                    // Update actual end time
+                    const endCell = document.querySelector(`.actual-end-${vehicleId}`);
+                    if (endCell) {
+                        if (vehicle.actual_end_time) {
+                            const endDate = new Date(vehicle.actual_end_time);
+                            const formattedDate = endDate.toLocaleDateString('en-US', {
+                                month: 'short', day: 'numeric', year: 'numeric'
+                            }) + ' ' + endDate.toLocaleTimeString('en-US', {
+                                hour: 'numeric', minute: '2-digit', hour12: true
+                            });
+                            endCell.innerHTML = `<span data-bs-toggle="tooltip" title="${formattedDate}" data-timestamp="${vehicle.actual_end_time}">Ended <span class="relative-time"></span></span>`;
+                        } else {
+                            endCell.innerHTML = '<span class="text-muted">-</span>';
+                        }
+                    }
+                    
+                    // Update status
+                    const statusCell = document.querySelector(`.status-${vehicleId}`);
+                    if (statusCell) {
+                        let statusBadge = '';
+                        if (vehicle.actual_end_time) {
+                            statusBadge = '<span class="badge bg-success">Completed</span>';
+                        } else if (vehicle.actual_start_time) {
+                            statusBadge = '<span class="badge bg-info">In Progress</span>';
+                        } else {
+                            statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+                        }
+                        statusCell.innerHTML = statusBadge;
+                    }
+                    
+                    // Update actions
+                    const actionsCell = document.querySelector(`.actions-${vehicleId}`);
+                    if (actionsCell) {
+                        let actionButtons = '<div class="btn-group btn-group-sm" role="group">';
+                        if (!vehicle.actual_start_time) {
+                            actionButtons += `<button class="btn btn-success start-service" data-vehicle-id="${vehicleId}"><i class="fas fa-play"></i> Start</button>`;
+                        } else if (!vehicle.actual_end_time) {
+                            actionButtons += `<button class="btn btn-danger complete-service" data-vehicle-id="${vehicleId}"><i class="fas fa-stop"></i> Stop</button>`;
+                        } else {
+                            actionButtons += '<span class="badge bg-success">Completed</span>';
+                        }
+                        actionButtons += '</div>';
+                        actionsCell.innerHTML = actionButtons;
+                        
+                        // Re-attach event listeners to new buttons
+                        attachButtonListeners();
+                    }
+                    
+                    // Update relative times and tooltips
+                    updateRelativeTimes();
+                    initializeTooltips();
+                }
+            })
+            .catch(error => {
+                console.error('Error updating row:', error);
+            });
+    }
+    
+    // Function to show flash messages
+    function showFlashMessage(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('.container');
+        const firstChild = container.firstElementChild;
+        container.insertBefore(alertDiv, firstChild);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+    
+    // Function to handle start service
+    function handleStartService(event) {
+        const vehicleId = event.target.closest('button').getAttribute('data-vehicle-id');
+        
+        fetch(`/vehicles/${vehicleId}/start-service`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateVehicleRow(vehicleId);
+                showFlashMessage(data.message, 'success');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while starting the service.');
+        });
+    }
+    
+    // Function to handle complete service
+    function handleCompleteService(event) {
+        const vehicleId = event.target.closest('button').getAttribute('data-vehicle-id');
+        
+        fetch(`/vehicles/${vehicleId}/complete-service`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateVehicleRow(vehicleId);
+                showFlashMessage(data.message, 'success');
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while completing the service.');
+        });
+    }
+    
+    // Function to attach button listeners
+    function attachButtonListeners() {
+        document.querySelectorAll('.start-service').forEach(button => {
+            button.removeEventListener('click', handleStartService);
+            button.addEventListener('click', handleStartService);
+        });
+        
+        document.querySelectorAll('.complete-service').forEach(button => {
+            button.removeEventListener('click', handleCompleteService);
+            button.addEventListener('click', handleCompleteService);
+        });
+    }
+
+    // Function to calculate relative time
+    function getRelativeTime(timestamp) {
+        const now = new Date();
+        const time = new Date(timestamp);
+        const diffMs = now - time;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        
+        if (diffMins < 1) return 'just now';
+        if (diffMins < 60) return `${diffMins} min ago`;
+        if (diffHours < 24) return `${diffHours} h ago`;
+        return `${diffDays} d ago`;
+    }
+    
+    // Function to update all relative times
+    function updateRelativeTimes() {
+        document.querySelectorAll('[data-timestamp]').forEach(element => {
+            const timestamp = element.getAttribute('data-timestamp');
+            const relativeSpan = element.querySelector('.relative-time');
+            if (relativeSpan && timestamp) {
+                relativeSpan.textContent = getRelativeTime(timestamp);
+            }
+        });
+    }
+    
+    // Function to initialize tooltips
+    function initializeTooltips() {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initial attachment of event listeners
+        attachButtonListeners();
+        
+        // Initialize tooltips and relative times
+        initializeTooltips();
+        updateRelativeTimes();
+        
+        // Update relative times every minute
+        setInterval(updateRelativeTimes, 60000);
+    });
+</script>
+{% endblock %}

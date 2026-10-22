@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Customer - Car Inventory{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-5 fw-bold">Edit Customer</h1>
+            <p class="lead">Update customer information</p>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Customer Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('edit_customer', customer_id=customer.customer_id) }}" id="customerForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" value="{{ customer.first_name }}" required
+                                       pattern="[A-Za-z\s]+" title="Only letters and spaces allowed">
+                                <div class="invalid-feedback">
+                                    First name is required.
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" value="{{ customer.last_name }}" required
+                                       pattern="[A-Za-z\s]+" title="Only letters and spaces allowed">
+                                <div class="invalid-feedback">
+                                    Last name is required.
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">Phone Number <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" id="phone" name="phone" value="{{ customer.phone }}" required
+                                       pattern="[0-9]{10,15}" title="10-15 digits required">
+                                <div class="invalid-feedback">
+                                    Valid phone number is required (10-15 digits).
+                                </div>
+                                <div class="form-text">Format: 10-15 digits (e.g., 1234567890)</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ customer.email }}" required>
+                                <div class="invalid-feedback">
+                                    Valid email address is required.
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label for="address" class="form-label">Address <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="address" name="address" rows="3" required>{{ customer.address }}</textarea>
+                                <div class="invalid-feedback">
+                                    Address is required.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('customers') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Customers
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Update Customer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Customer ID: {{ customer.customer_id }}</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <i class="fas fa-calendar text-primary me-2"></i>
+                        <strong>Registered:</strong> {{ customer.created_at.strftime('%Y-%m-%d') }}
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-car text-primary me-2"></i>
+                        <strong>Vehicles:</strong> 
+                        {% set vehicle_count = customer.cars|length %}
+                        {{ vehicle_count }} vehicle{{ 's' if vehicle_count != 1 }}
+                    </p>
+                    
+                    {% if customer.cars %}
+                    <div class="list-group mt-3">
+                        <div class="list-group-item list-group-item-secondary">
+                            <strong>Customer Vehicles</strong>
+                        </div>
+                        {% for car in customer.cars %}
+                        <a href="{{ url_for('view_vehicle', id=car.id) }}" class="list-group-item list-group-item-action">
+                            {{ car.year }} {{ car.brand }} {{ car.model }}
+                            <span class="badge bg-secondary float-end">{{ car.vehicle_id }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Information</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <i class="fas fa-info-circle text-primary me-2"></i>
+                        All fields marked with <span class="text-danger">*</span> are required.
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-phone text-primary me-2"></i>
+                        Phone number should be between 10-15 digits.
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-envelope text-primary me-2"></i>
+                        Email address must be valid and unique in the system.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form validation
+        const form = document.getElementById('customerForm');
+        
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+            
+            // Additional validation
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+            
+            // Phone validation
+            const phoneDigits = phone.replace(/\D/g, '');
+            if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+                event.preventDefault();
+                alert('Phone number must be between 10 and 15 digits');
+                return;
+            }
+            
+            // Email validation
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(email)) {
+                event.preventDefault();
+                alert('Please enter a valid email address');
+                return;
+            }
+        });
+        
+        // Phone validation
+        const phoneInput = document.getElementById('phone');
+        phoneInput.addEventListener('input', function() {
+            // Remove non-digit characters
+            this.value = this.value.replace(/\D/g, '');
+            
+            // Validate length
+            if (this.value.length < 10 || this.value.length > 15) {
+                this.setCustomValidity('Phone number must be between 10-15 digits');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+        
+        // Email validation
+        const emailInput = document.getElementById('email');
+        emailInput.addEventListener('input', function() {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(this.value)) {
+                this.setCustomValidity('Please enter a valid email address');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    });
+</script>
+{% endblock %}

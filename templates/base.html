@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Car Inventory Management{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --navbar-height: 60px;
+            --transition-speed: 0.3s;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: calc(100vh - var(--navbar-height));
+            position: fixed;
+            top: var(--navbar-height);
+            left: 0;
+            padding: 1rem;
+            transition: transform var(--transition-speed);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: var(--bs-body-color);
+            text-decoration: none;
+            border-radius: 0.5rem;
+            transition: all var(--transition-speed);
+        }
+
+        .sidebar-link:hover {
+            background-color: var(--bs-primary-bg-subtle);
+            color: var(--bs-primary);
+        }
+
+        .sidebar-link.active {
+            background-color: var(--bs-primary);
+            color: white;
+        }
+
+        .sidebar-link i {
+            width: 1.5rem;
+            margin-right: 0.75rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 1rem;
+            transition: margin var(--transition-speed);
+            flex: 1;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+            height: var(--navbar-height);
+            padding: 0 1rem;
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            transition: background-color var(--transition-speed);
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--bs-primary-bg-subtle);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        /* Dark Mode Styles */
+        [data-bs-theme="dark"] {
+            --bs-body-bg: #1a1d20;
+            --bs-body-color: #e9ecef;
+        }
+
+        [data-bs-theme="dark"] .sidebar {
+            background-color: #212529;
+        }
+
+        [data-bs-theme="dark"] .card {
+            background-color: #212529;
+            border-color: #2c3034;
+        }
+
+        [data-bs-theme="dark"] .table {
+            color: #e9ecef;
+        }
+
+        [data-bs-theme="dark"] .table thead th {
+            background-color: #2c3034;
+            border-color: #373b3e;
+        }
+
+        [data-bs-theme="dark"] .table td {
+            border-color: #373b3e;
+        }
+
+        /* Custom Dropdown Styling */
+        select.form-select {
+            appearance: auto;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+
+        select.form-select:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            outline: 0;
+        }
+
+        select.form-select:disabled {
+            background-color: #e9ecef;
+            opacity: 1;
+        }
+
+        [data-bs-theme="dark"] select.form-select {
+            background-color: #212529;
+            border-color: #495057;
+            color: #e9ecef;
+        }
+
+        [data-bs-theme="dark"] select.form-select:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        [data-bs-theme="dark"] select.form-select:disabled {
+            background-color: #343a40;
+            border-color: #495057;
+            color: #6c757d;
+        }
+
+        /* Custom animation for focus */
+        select.form-select:focus {
+            animation: select-focus-animation 0.3s ease;
+        }
+
+        @keyframes select-focus-animation {
+            0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+            50% { box-shadow: 0 0 0 0.3rem rgba(13, 110, 253, 0.25); }
+            100% { box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
+        <div class="container-fluid">
+            <button class="btn btn-link d-lg-none me-2" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-car me-2"></i>Car Inventory
+            </a>
+            <div class="d-flex align-items-center">
+                <button class="theme-toggle me-3" id="themeToggle">
+                    <i class="fas fa-sun"></i>
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-link dropdown-toggle text-decoration-none" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-1"></i>
+                        {{ current_user.name }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% if current_user.is_admin %}
+                            <li><a class="dropdown-item" href="{{ url_for('settings') }}">
+                                <i class="fas fa-cog me-2"></i>Settings
+                            </a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar bg-body-tertiary border-end" id="sidebar">
+        <div class="d-flex flex-column h-100">
+            <div class="nav flex-column">
+                {% if current_user.is_admin %}
+                <!-- Admin Sidebar -->
+                <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                    <i class="fas fa-home"></i>Home
+                </a>
+                <a href="{{ url_for('customers') }}" class="sidebar-link {% if request.endpoint == 'customers' %}active{% endif %}">
+                    <i class="fas fa-users"></i>Customers
+                </a>
+                <a href="{{ url_for('vehicles') }}" class="sidebar-link {% if request.endpoint == 'vehicles' %}active{% endif %}">
+                    <i class="fas fa-car"></i>Vehicles
+                </a>
+                <a href="{{ url_for('parts') }}" class="sidebar-link {% if request.endpoint == 'parts' %}active{% endif %}">
+                    <i class="fas fa-cogs"></i>Parts
+                </a>
+                <a href="{{ url_for('services') }}" class="sidebar-link {% if request.endpoint == 'services' %}active{% endif %}">
+                    <i class="fas fa-tools"></i>Services
+                </a>
+                <a href="{{ url_for('service_parts') }}" class="sidebar-link {% if request.endpoint == 'service_parts' %}active{% endif %}">
+                    <i class="fas fa-cog"></i>Service Parts
+                </a>
+                <a href="{{ url_for('bills') }}" class="sidebar-link {% if request.endpoint == 'bills' %}active{% endif %}">
+                    <i class="fas fa-file-invoice-dollar"></i>Bills
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-chart-line"></i>Analytics
+                </a>
+                <a href="{{ url_for('employees') }}" class="sidebar-link {% if request.endpoint == 'employees' %}active{% endif %}">
+                    <i class="fas fa-user-tie"></i>Employees
+                </a>
+                <a href="{{ url_for('settings') }}" class="sidebar-link {% if request.endpoint == 'settings' %}active{% endif %}">
+                    <i class="fas fa-cog"></i>Settings
+                </a>
+                {% elif current_user.role == 'manager' %}
+                <!-- Manager Sidebar -->
+                <a href="{{ url_for('manager_dashboard') }}" class="sidebar-link {% if request.endpoint == 'manager_dashboard' %}active{% endif %}">
+                    <i class="fas fa-home"></i>Home
+                </a>
+                <a href="{{ url_for('customers') }}" class="sidebar-link {% if request.endpoint == 'customers' %}active{% endif %}">
+                    <i class="fas fa-users"></i>Customers
+                </a>
+                <a href="{{ url_for('vehicles') }}" class="sidebar-link {% if request.endpoint == 'vehicles' %}active{% endif %}">
+                    <i class="fas fa-car"></i>Vehicles
+                </a>
+                <a href="{{ url_for('parts') }}" class="sidebar-link {% if request.endpoint == 'parts' %}active{% endif %}">
+                    <i class="fas fa-cogs"></i>Parts
+                </a>
+                <a href="{{ url_for('services') }}" class="sidebar-link {% if request.endpoint == 'services' %}active{% endif %}">
+                    <i class="fas fa-tools"></i>Services
+                </a>
+                <a href="{{ url_for('service_parts') }}" class="sidebar-link {% if request.endpoint == 'service_parts' %}active{% endif %}">
+                    <i class="fas fa-cog"></i>Service Parts
+                </a>
+                <a href="{{ url_for('bills') }}" class="sidebar-link {% if request.endpoint == 'bills' %}active{% endif %}">
+                    <i class="fas fa-file-invoice-dollar"></i>Bills
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-chart-line"></i>Analytics
+                </a>
+                <a href="{{ url_for('manager_employees') }}" class="sidebar-link {% if request.endpoint == 'manager_employees' %}active{% endif %}">
+                    <i class="fas fa-user-tie"></i>Employees
+                </a>
+                <a href="{{ url_for('settings') }}" class="sidebar-link {% if request.endpoint == 'settings' %}active{% endif %}">
+                    <i class="fas fa-cog"></i>Settings
+                </a>
+                {% elif current_user.role == 'staff' %}
+                <!-- Staff Sidebar -->
+                <a href="{{ url_for('staff_dashboard') }}" class="sidebar-link {% if request.endpoint == 'staff_dashboard' %}active{% endif %}">
+                    <i class="fas fa-home"></i>Home
+                </a>
+                <a href="{{ url_for('customers') }}" class="sidebar-link {% if request.endpoint == 'customers' %}active{% endif %}">
+                    <i class="fas fa-users"></i>Customers
+                </a>
+                <a href="{{ url_for('vehicles') }}" class="sidebar-link {% if request.endpoint == 'vehicles' %}active{% endif %}">
+                    <i class="fas fa-car"></i>Vehicles
+                </a>
+                <a href="{{ url_for('assigned_vehicles') }}" class="sidebar-link {% if request.endpoint == 'assigned_vehicles' %}active{% endif %}">
+                    <i class="fas fa-user-tag"></i>Assigned Vehicles
+                </a>
+                <a href="{{ url_for('parts') }}" class="sidebar-link {% if request.endpoint == 'parts' %}active{% endif %}">
+                    <i class="fas fa-cogs"></i>Parts
+                </a>
+                <a href="{{ url_for('services') }}" class="sidebar-link {% if request.endpoint == 'services' %}active{% endif %}">
+                    <i class="fas fa-tools"></i>Services
+                </a>
+                <a href="{{ url_for('service_parts') }}" class="sidebar-link {% if request.endpoint == 'service_parts' %}active{% endif %}">
+                    <i class="fas fa-cog"></i>Service Parts
+                </a>
+                <a href="{{ url_for('bills') }}" class="sidebar-link {% if request.endpoint == 'bills' %}active{% endif %}">
+                    <i class="fas fa-file-invoice-dollar"></i>Bills
+                </a>
+                <!-- Analytics/Performance link removed - only available to managers -->
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container-fluid">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    {% else %}
+    <!-- Unauthenticated Content -->
+    <main>
+        {% block unauthenticated_content %}{% endblock %}
+    </main>
+    {% endif %}
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% if current_user.is_authenticated %}
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const icon = themeToggle.querySelector('i');
+
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-bs-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+            html.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+
+        function updateThemeIcon(theme) {
+            icon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+        }
+
+        // Sidebar Toggle
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.querySelector('.main-content');
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('show');
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(e.target) &&
+                !sidebarToggle.contains(e.target) &&
+                sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('show');
+            }
+        });
+    </script>
+    {% endif %}
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

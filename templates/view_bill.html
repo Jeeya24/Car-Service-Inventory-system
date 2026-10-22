@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Bill Details - Car Inventory{% endblock %}
+
+{% block content %}
+<div class="bill-details-container">
+    <div class="header-actions">
+        <h1>Bill Details</h1>
+        <div class="actions">
+            <a href="{{ url_for('generate_bill_pdf', id=bill.id) }}" class="btn btn-primary">Download PDF</a>
+            <a href="{{ url_for('bills') }}" class="btn btn-outline">Back to Bills</a>
+        </div>
+    </div>
+
+    <div class="bill-info">
+        <div class="info-card">
+            <h3>Bill Information</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Bill ID:</label>
+                    <span>{{ bill.bill_id }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Billing Date:</label>
+                    <span>{{ bill.billing_date.strftime('%Y-%m-%d') }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Payment Status:</label>
+                    <span class="badge badge-{{ bill.payment_status|lower }}">{{ bill.payment_status }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Total Amount:</label>
+                    <span>${{ "%.2f"|format(bill.total_amount) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <h3>Customer Information</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Customer ID:</label>
+                    <span>{{ bill.customer.customer_id }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Name:</label>
+                    <span>{{ bill.customer.first_name }} {{ bill.customer.last_name }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Phone:</label>
+                    <span>{{ bill.customer.phone }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Email:</label>
+                    <span>{{ bill.customer.email }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <h3>Vehicle Information</h3>
+            <div class="info-grid">
+                {% if bill.service and bill.service.vehicle %}
+                    <div class="info-item">
+                        <label>Vehicle ID:</label>
+                        <span>{{ bill.service.vehicle.vehicle_id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Brand:</label>
+                        <span>{{ bill.service.vehicle.brand }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Model:</label>
+                        <span>{{ bill.service.vehicle.model }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Registration:</label>
+                        <span>{{ bill.service.vehicle.registration_number }}</span>
+                    </div>
+                {% else %}
+                    <div class="info-item">
+                        <label>Vehicle Information:</label>
+                        <span>Vehicle information unavailable</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="service-details">
+        <h3>Service Details</h3>
+        {% if bill.service %}
+            <div class="info-card">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Service ID:</label>
+                        <span>{{ bill.service.service_id }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Service Date:</label>
+                        <span>{{ bill.service.service_date.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Status:</label>
+                        <span class="badge badge-{{ bill.service.service_status|lower }}">{{ bill.service.service_status }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="services-list">
+                <h4>Services Performed</h4>
+                {% if bill.service.services %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Service Type</th>
+                                    <th>Description</th>
+                                    <th>Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for service_detail in bill.service.services %}
+                                    <tr>
+                                        <td>{{ service_detail.service_type }}</td>
+                                        <td>{{ service_detail.description }}</td>
+                                        <td>${{ "%.2f"|format(service_detail.service_cost) }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="no-items">No service details available.</p>
+                {% endif %}
+            </div>
+
+            <div class="parts-list">
+                <h4>Parts Used</h4>
+                {% if bill.service.parts_used %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Part ID</th>
+                                    <th>Part Name</th>
+                                    <th>Brand</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for part in bill.service.parts_used %}
+                                    <tr>
+                                        <td>{{ part.part.part_id }}</td>
+                                        <td>{{ part.part.part_name }}</td>
+                                        <td>{{ part.part.brand }}</td>
+                                        <td>{{ part.quantity_used }}</td>
+                                        <td>${{ "%.2f"|format(part.price_at_time) }}</td>
+                                        <td>${{ "%.2f"|format(part.total_cost) }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="no-items">No parts were used in this service.</p>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="info-card">
+                <p class="no-items">Service details are not available for this bill.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if bill.payment_status == 'Pending' %}
+        <div class="payment-actions">
+            <button onclick="markAsPaid({{ bill.id }})" class="btn btn-success">Mark as Paid</button>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function markAsPaid(billId) {
+    if (confirm('Are you sure you want to mark this bill as paid?')) {
+        fetch(`/api/bills/${billId}/mark-paid`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Failed to update payment status: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the payment status.');
+        });
+    }
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bill-details-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.header-actions .actions {
+    display: flex;
+    gap: 10px;
+}
+
+.bill-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.info-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.info-card h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-item label {
+    font-weight: 500;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.badge-paid {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.badge-pending {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.badge-completed {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.badge-in-progress {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
+.service-details {
+    margin-top: 30px;
+}
+
+.service-details h3 {
+    margin-bottom: 20px;
+}
+
+.services-list,
+.parts-list {
+    margin-top: 20px;
+}
+
+.services-list h4,
+.parts-list h4 {
+    margin-bottom: 15px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table th,
+.table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.no-items {
+    text-align: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    color: #666;
+}
+
+.payment-actions {
+    margin-top: 30px;
+    text-align: center;
+}
+</style>
+{% endblock %}

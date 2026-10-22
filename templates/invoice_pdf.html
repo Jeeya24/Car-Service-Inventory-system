@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice #{{ bill.bill_id }}</title>
+    <style>
+        @page {
+            size: letter portrait;
+            margin: 2cm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .invoice-header {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        .company-info {
+            width: 60%;
+            float: left;
+        }
+        .invoice-info {
+            width: 40%;
+            float: right;
+            text-align: right;
+        }
+        .invoice-title {
+            font-size: 24px;
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+        }
+        .clear {
+            clear: both;
+        }
+        .invoice-details {
+            margin-bottom: 30px;
+        }
+        .detail-section {
+            width: 48%;
+            float: left;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #eee;
+            background-color: #f9f9f9;
+        }
+        .detail-section.right {
+            float: right;
+        }
+        .detail-section h3 {
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .detail-section p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .section-title {
+            font-size: 18px;
+            color: #2c3e50;
+            margin: 20px 0 10px 0;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 5px;
+        }
+        .total-section {
+            text-align: right;
+            margin-top: 20px;
+        }
+        .total-amount {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            display: inline-block;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-paid {
+            background-color: #28a745;
+            color: white;
+        }
+        .status-pending {
+            background-color: #ffc107;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-header">
+        <div class="company-info">
+            <h1 class="invoice-title">Car Inventory Service</h1>
+            <p>123 Service Street</p>
+            <p>City, State 12345</p>
+            <p>Phone: (555) 123-4567</p>
+            <p>Email: service@carinventory.com</p>
+        </div>
+        <div class="invoice-info">
+            <h2>INVOICE</h2>
+            <p><strong>Invoice #:</strong> {{ bill.bill_id }}</p>
+            <p><strong>Date:</strong> {{ bill.billing_date.strftime('%Y-%m-%d') }}</p>
+            <p><strong>Status:</strong>
+                <span class="status-badge status-{{ bill.payment_status|lower }}">
+                    {{ bill.payment_status }}
+                </span>
+            </p>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <div class="invoice-details">
+        <div class="detail-section">
+            <h3>Customer Information</h3>
+            <p><strong>Name:</strong> {{ bill.customer.first_name }} {{ bill.customer.last_name }}</p>
+            <p><strong>ID:</strong> {{ bill.customer.customer_id }}</p>
+            <p><strong>Phone:</strong> {{ bill.customer.phone }}</p>
+            <p><strong>Email:</strong> {{ bill.customer.email }}</p>
+        </div>
+        <div class="detail-section right">
+            <h3>Vehicle Information</h3>
+            <p><strong>Vehicle ID:</strong> {{ bill.service.vehicle.vehicle_id }}</p>
+            <p><strong>Brand:</strong> {{ bill.service.vehicle.brand }}</p>
+            <p><strong>Model:</strong> {{ bill.service.vehicle.model }}</p>
+            <p><strong>Registration:</strong> {{ bill.service.vehicle.registration_number }}</p>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <h3 class="section-title">Services Performed</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Service Type</th>
+                <th>Description</th>
+                <th>Cost</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for service_detail in bill.service.services %}
+                <tr>
+                    <td>{{ service_detail.service_type }}</td>
+                    <td>{{ service_detail.description }}</td>
+                    <td>${{ "%.2f"|format(service_detail.service_cost) }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if bill.service.parts_used %}
+        <h3 class="section-title">Parts Used</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Part Name</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Line Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for part in bill.service.parts_used %}
+                    <tr>
+                        <td>{{ part.part.part_name }}</td>
+                        <td>{{ part.quantity_used }}</td>
+                        <td>${{ "%.2f"|format(part.price_at_time) }}</td>
+                        <td>${{ "%.2f"|format(part.total_cost) }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <div class="total-section">
+        <p class="total-amount">Total Amount: ${{ "%.2f"|format(bill.total_amount) }}</p>
+    </div>
+
+    <div class="footer">
+        <p>Thank you for choosing Car Inventory Service!</p>
+        <p>This is a computer-generated invoice. No signature is required.</p>
+    </div>
+</body>
+</html>

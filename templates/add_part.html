@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}Add Part - Car Inventory{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-5 fw-bold">Add New Part</h1>
+            <p class="lead">Register a spare part in the inventory system</p>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Part Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('add_part') }}" id="partForm" class="needs-validation" novalidate>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="part_name" class="form-label">Part Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="part_name" name="part_name" required
+                                       pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces, and hyphens allowed">
+                                <div class="invalid-feedback">
+                                    Part name is required.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="brand" class="form-label">Brand <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="brand" name="brand" required
+                                       pattern="[A-Za-z0-9\s\-]+" title="Only letters, numbers, spaces, and hyphens allowed">
+                                <div class="invalid-feedback">
+                                    Brand is required.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="price" class="form-label">Price ($) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="price" name="price" required min="0" step="0.01"
+                                       title="Enter a valid price (minimum 0)">
+                                <div class="invalid-feedback">
+                                    Valid price is required.
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="stock_quantity" class="form-label">Initial Stock Quantity <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="stock_quantity" name="stock_quantity" required min="0"
+                                       title="Enter a valid quantity (minimum 0)">
+                                <div class="invalid-feedback">
+                                    Valid stock quantity is required.
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="supplier_id" class="form-label">Supplier</label>
+                                <div class="input-group">
+                                    <select id="supplier_id" name="supplier_id" class="form-select">
+                                        <option value="">-- Select Supplier --</option>
+                                        {% for supplier in suppliers %}
+                                            <option value="{{ supplier.id }}" {% if supplier.preferred_supplier %}class="text-success fw-bold"{% endif %}>
+                                                {{ supplier.supplier_name }} {% if supplier.preferred_supplier %}(Preferred){% endif %}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary" id="addSupplierBtn" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+                                        <i class="fas fa-plus"></i> Add New
+                                    </button>
+                                </div>
+                                <div class="form-text">Select a supplier or add a new one</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('parts') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Parts
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Add Part
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Information</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <i class="fas fa-info-circle text-primary me-2"></i>
+                        All fields marked with <span class="text-danger">*</span> are required.
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-tag text-primary me-2"></i>
+                        Part ID will be automatically generated.
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-dollar-sign text-primary me-2"></i>
+                        Price must be a positive number.
+                    </p>
+                    <p class="card-text">
+                        <i class="fas fa-boxes text-primary me-2"></i>
+                        Initial stock quantity must be a non-negative integer.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Add Supplier Modal -->
+<div class="modal fade" id="addSupplierModal" tabindex="-1" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title" id="addSupplierModalLabel">Add New Supplier</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickAddSupplierForm" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="supplier_name" class="form-label">Supplier Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="supplier_name" required>
+                            <div class="invalid-feedback">
+                                Supplier name is required.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" required>
+                            <div class="invalid-feedback">
+                                Valid email is required.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label">Phone <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="phone" required>
+                            <div class="invalid-feedback">
+                                Phone number is required.
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="delivery_lead_time" class="form-label">Delivery Lead Time (days)</label>
+                            <input type="number" class="form-control" id="delivery_lead_time" min="1" value="1">
+                            <div class="form-text">Number of days typically needed for delivery</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="preferred_supplier">
+                                <label class="form-check-label" for="preferred_supplier">Preferred Supplier</label>
+                            </div>
+                            <div class="form-text">Mark as preferred for priority ordering</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="saveSupplierBtn">
+                    <i class="fas fa-save me-2"></i>Save Supplier
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form validation for the main part form
+    const partForm = document.getElementById('partForm');
+
+    partForm.addEventListener('submit', function(e) {
+        if (!this.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        this.classList.add('was-validated');
+
+        // Additional validation
+        const price = parseFloat(document.getElementById('price').value);
+        const stock = parseInt(document.getElementById('stock_quantity').value);
+
+        if (price < 0) {
+            e.preventDefault();
+            const priceInput = document.getElementById('price');
+            priceInput.setCustomValidity('Price cannot be negative');
+            priceInput.reportValidity();
+            return;
+        }
+
+        if (stock < 0) {
+            e.preventDefault();
+            const stockInput = document.getElementById('stock_quantity');
+            stockInput.setCustomValidity('Stock quantity cannot be negative');
+            stockInput.reportValidity();
+            return;
+        }
+    });
+
+    // Form validation for the supplier modal
+    const supplierForm = document.getElementById('quickAddSupplierForm');
+
+    // Quick add supplier functionality
+    const saveSupplierBtn = document.getElementById('saveSupplierBtn');
+    saveSupplierBtn.addEventListener('click', function() {
+        // Validate form
+        if (!supplierForm.checkValidity()) {
+            supplierForm.classList.add('was-validated');
+            return;
+        }
+
+        const supplierName = document.getElementById('supplier_name').value;
+        const email = document.getElementById('email').value;
+        const phone = document.getElementById('phone').value;
+        const deliveryLeadTime = document.getElementById('delivery_lead_time').value;
+        const preferredSupplier = document.getElementById('preferred_supplier').checked;
+
+        // Show loading state
+        saveSupplierBtn.disabled = true;
+        saveSupplierBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...';
+
+        // Send AJAX request to add supplier
+        fetch('/api/suppliers/quick-add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                supplier_name: supplierName,
+                email: email,
+                phone: phone,
+                delivery_lead_time: deliveryLeadTime,
+                preferred_supplier: preferredSupplier
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Reset button state
+            saveSupplierBtn.disabled = false;
+            saveSupplierBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Supplier';
+
+            if (data.success) {
+                // Add new supplier to dropdown
+                const supplierDropdown = document.getElementById('supplier_id');
+                const option = document.createElement('option');
+                option.value = data.supplier.id;
+                option.textContent = data.supplier.supplier_name + (data.supplier.preferred_supplier ? ' (Preferred)' : '');
+                if (data.supplier.preferred_supplier) {
+                    option.classList.add('text-success', 'fw-bold');
+                }
+                supplierDropdown.appendChild(option);
+
+                // Select the new supplier
+                supplierDropdown.value = data.supplier.id;
+
+                // Close modal
+                bootstrap.Modal.getInstance(document.getElementById('addSupplierModal')).hide();
+
+                // Show success message with toast or alert
+                const alertContainer = document.createElement('div');
+                alertContainer.className = 'alert alert-success alert-dismissible fade show';
+                alertContainer.setAttribute('role', 'alert');
+                alertContainer.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+
+                // Insert the alert before the form
+                partForm.parentNode.insertBefore(alertContainer, partForm);
+
+                // Auto-dismiss after 5 seconds
+                setTimeout(() => {
+                    const bsAlert = new bootstrap.Alert(alertContainer);
+                    bsAlert.close();
+                }, 5000);
+
+                // Reset form
+                supplierForm.classList.remove('was-validated');
+                supplierForm.reset();
+            } else {
+                // Show error message
+                const errorField = document.getElementById(data.field || 'supplier_name');
+                if (errorField) {
+                    errorField.setCustomValidity(data.message);
+                    errorField.reportValidity();
+                    setTimeout(() => errorField.setCustomValidity(''), 5000);
+                } else {
+                    // Fallback to alert if we can't determine the field
+                    alert(data.message);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+
+            // Reset button state
+            saveSupplierBtn.disabled = false;
+            saveSupplierBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Supplier';
+
+            // Show error message
+            alert('An error occurred while adding the supplier. Please try again.');
+        });
+    });
+
+    // Reset validation when modal is hidden
+    const addSupplierModal = document.getElementById('addSupplierModal');
+    addSupplierModal.addEventListener('hidden.bs.modal', function() {
+        supplierForm.classList.remove('was-validated');
+        supplierForm.reset();
+    });
+
+    // Focus first field when modal is shown
+    addSupplierModal.addEventListener('shown.bs.modal', function() {
+        document.getElementById('supplier_name').focus();
+    });
+});
+</script>
+{% endblock %}
